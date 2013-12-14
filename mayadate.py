@@ -164,9 +164,10 @@ class date:
         '_tun',
         '_winal',
         '_kin',
+        'correlation'
     )
 
-    correlation = CORRELATION_GMT
+    default_correlation = CORRELATION_GMT
 
     @classmethod
     def fromdaynum(cls, ordinal):
@@ -176,21 +177,16 @@ class date:
     @classmethod
     def fromgregorian(cls, gregorian_date, correlation=None):
         if correlation is None:
-            correlation_init = CORRELATION_GMT
-        else:
-            correlation_init = correlation
-        longcount = _date2longcount(gregorian_date, correlation_init)
-        maya = cls(*longcount)
-        if correlation is not None:
-            maya.correlation = correlation
-        return maya
+            correlation = cls.default_correlation
+        longcount = _date2longcount(gregorian_date, correlation)
+        return cls(*longcount, correlation=correlation)
 
     @classmethod
     def today(cls, correlation=None):
         today = datetime.date.today()
         return cls.fromgregorian(today, correlation)
 
-    def __new__(cls, *args):
+    def __new__(cls, *args, correlation=None):
         piktun, baktun, katun, tun, winal, kin = _longcount(*args)
         _check_longcount_fields(piktun, baktun, katun, tun, winal, kin)
         self = object.__new__(cls)
@@ -200,6 +196,10 @@ class date:
         self._tun = tun
         self._winal = winal
         self._kin = kin
+        if correlation is None:
+            self.correlation = cls.default_correlation
+        else:
+            self.correlation = correlation
         return self
 
     def __repr__(self):
