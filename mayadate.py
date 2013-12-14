@@ -4,6 +4,8 @@ import datetime
 CORRELATION_GMT = 584283
 CORRELATION_TL = 584285
 
+_MAXORDINAL = 57599999
+
 _TZOLKINNAMES = (
     None,
     "Imix'",
@@ -390,3 +392,25 @@ class date:
         if isinstance(other, date):
             return self._cmp(other) > 0
         return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, delta):
+            o = self.daynum + other.days
+            if 0 <= o <= _MAXORDINAL:
+                return date.fromdaynum(o)
+            raise OverflowError("result out of range")
+        return NotImplemented
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, delta):
+            return delta(-other.days) + self
+        if isinstance(other, date):
+            daynum1 = self.daynum
+            daynum2 = other.daynum
+            return delta(daynum1 - daynum2)
+        return NotImplemented
+
+
+delta = datetime.timedelta
