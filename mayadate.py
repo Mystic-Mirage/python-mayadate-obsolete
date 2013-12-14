@@ -217,7 +217,7 @@ class date:
             self.longcountstr,
             self.tzolkinstr,
             self.haabstr,
-            self.ybearerstr,
+            self.yearbearerstr,
             self.lordofnightstr
         )
 
@@ -310,7 +310,7 @@ class date:
         return _ord2haab(self.daynum)
 
     @property
-    def haabsrt(self):
+    def haabstr(self):
         haab = self.haab
         return '%d %s' % (haab[1], _HAABNAMES[haab[0]])
 
