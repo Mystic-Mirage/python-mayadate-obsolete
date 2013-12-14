@@ -185,6 +185,11 @@ class date:
             maya.correlation = correlation
         return maya
 
+    @classmethod
+    def today(cls, correlation=None):
+        today = datetime.date.today()
+        return cls.fromgregorian(today, correlation)
+
     def __new__(cls, *args):
         piktun, baktun, katun, tun, winal, kin = _longcount(*args)
         _check_longcount_fields(piktun, baktun, katun, tun, winal, kin)
