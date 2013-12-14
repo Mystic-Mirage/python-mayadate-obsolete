@@ -89,6 +89,10 @@ def _check_longcount_fields(piktun, baktun, katun, tun, winal, kin):
         raise ValueError('kin must be in 0..19', kin)
 
 
+def _cmp(x, y):
+    return 0 if x == y else 1 if x > y else -1
+
+
 def _date2longcount(gregorian_date, correlation=CORRELATION_GMT):
     if not isinstance(gregorian_date, datetime.date):
         raise ValueError(
@@ -338,3 +342,51 @@ class date:
             return _maya2date(self)
         except:
             raise OverflowError("can't convert to gregorian date")
+
+    def _cmp(self, other):
+        assert isinstance(other, date)
+        piktun = self._piktun
+        baktun = self._baktun
+        katun = self._katun
+        tun = self._tun
+        winal = self._winal
+        kin = self._kin
+        piktun2 = other._piktun
+        baktun2 = other._baktun
+        katun2 = other._katun
+        tun2 = other._katun
+        winal2 = other._winal
+        kin2 = other._winal
+        return _cmp(
+            (piktun, baktun, katun, tun, winal, kin),
+            (piktun2, baktun2, katun2, tun2, winal2, kin2)
+        )
+
+        if isinstance(other, date):
+            return self._cmp(other) == 0
+        return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, date):
+            return self._cmp(other) != 0
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, date):
+            return self._cmp(other) <= 0
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, date):
+            return self._cmp(other) < 0
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, date):
+            return self._cmp(other) >= 0
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, date):
+            return self._cmp(other) > 0
+        return NotImplemented
