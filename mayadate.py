@@ -64,7 +64,7 @@ _LORDOFNIGHTNAMES = (
     'G7',
     'G8',
     'G9'
-    )
+)
 
 
 def _check_longcount_fields(piktun, baktun, katun, tun, winal, kin):
@@ -95,64 +95,118 @@ def _cmp(x, y):
     return 0 if x == y else 1 if x > y else -1
 
 
-def _date2longcount(gregorian_date, correlation=CORRELATION_GMT):
-    if not isinstance(gregorian_date, datetime.date):
+def _date2longcount(gdate, correlation):
+    if not isinstance(gdate, datetime.date):
         raise ValueError(
             "argument must be 'datetime.date' object",
-            type(gregorian_date).__name__
+            type(gdate).__name__
         )
-    ordinal = gregorian_date.toordinal() + 1721425 - correlation
-    return _ord2longcount(ordinal)
+    o = gdate.toordinal() + 1721425 - correlation
+    return _ord2longcount(o)
+
+
+_DAYS_IN_MONTH = [None, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+_DAYS_AFTER_MONTH = []
+dbm = 0
+for dim in reversed(_DAYS_IN_MONTH[1:]):
+    _DAYS_AFTER_MONTH.append(dbm)
+    dbm += dim
+del dbm, dim
+_DAYS_AFTER_MONTH.append(None)
+_DAYS_AFTER_MONTH.reverse()
+
+
+def _is_leap(year):
+    y = year + 1
+    return y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)
+
+
+def _days_after_year(year):
+    y = year + 1
+    return -(y * 365 + y // 4 - y // 100 + y // 400)
+
+
+def _days_in_month(year, month):
+    assert 1 <= month <= 12, month
+    if month == 2 and _is_leap(year):
+        return 29
+    return _DAYS_IN_MONTH[month]
+
+
+def _days_after_month(year, month):
+    assert 1 <= month <= 12, 'month must be in 1..12'
+    return _DAYS_AFTER_MONTH[month] - (month < 2 and _is_leap(year))
+
+
+def _days_after_day(year, month, day):
+    dim = _days_in_month(year, month)
+    assert 1 <= day <= dim, ('day must be in 1..%d' % dim)
+    return dim - day
+
+
+def _bc2gregorianord(year, month, day):
+    return -(
+        _days_after_year(year) +
+        _days_after_month(year, month) +
+        _days_after_day(year, month, day)
+    )
+
+
+def _bc2longcount(year, month, day, correlation):
+    o = _bc2gregorianord(year, month, day) + 1721425 - correlation
+    return _ord2longcount(o)
 
 
 def _longcount2ord(*args):
-    longcount = _longcount(*args)
-    piktun, baktun, katun, tun, winal, kin = longcount
-    ordinal = piktun
-    ordinal = 20 * ordinal + baktun
-    ordinal = 20 * ordinal + katun
-    ordinal = 20 * ordinal + tun
-    ordinal = 18 * ordinal + winal
-    ordinal = 20 * ordinal + kin
-    return ordinal
+    l = _longcount(*args)
+    piktun, baktun, katun, tun, winal, kin = l
+    o = piktun
+    o = 20 * o + baktun
+    o = 20 * o + katun
+    o = 20 * o + tun
+    o = 18 * o + winal
+    o = 20 * o + kin
+    return o
 
 
 def _longcount(*args):
-    args_len = len(args)
-    if args_len == 5:
+    len_args = len(args)
+    if len_args == 5:
         piktun = 0
         baktun, katun, tun, winal, kin = args
-    elif args_len == 6:
+    elif len_args == 6:
         piktun, baktun, katun, tun, winal, kin = args
     else:
         raise ValueError(
             'long count # of arguments must be 5 or 6',
-            args_len
+            len_args
         )
     return piktun, baktun, katun, tun, winal, kin
 
 
-def _maya2date(maya_date):
-    ordinal = maya_date.daynum - 1721425 + maya_date.correlation
-    return datetime.date.fromordinal(ordinal)
+def _maya2date(mdate):
+    o = mdate.daynum - 1721425 + mdate.correlation
+    return datetime.date.fromordinal(o)
 
 
-def _ord2longcount(ordinal):
-    dividend = ordinal
-    longcount = []
-    for ratio in (2880000, 144000, 7200, 360, 20, 1):
-        quotient, dividend = divmod(dividend, ratio)
-        longcount.append(quotient)
-    return tuple(longcount)
+def _ord2longcount(o):
+    assert 0 <= o <= _MAXORDINAL, 'ordinal must be in 1..%d' % (_MAXORDINAL)
+    d = o
+    l = []
+    for r in (2880000, 144000, 7200, 360, 20, 1):
+        q, d = divmod(d, r)
+        l.append(q)
+    return tuple(l)
 
 
-def _ord2haab(ordinal):
-    haab = divmod((ordinal + 348) % 365, 20)
+def _ord2haab(o):
+    haab = divmod((o + 348) % 365, 20)
     return haab[0] + 1, haab[1]
 
 
-def _ord2tzolkin(ordinal):
-    return (ordinal + 19) % 20 + 1, (ordinal + 3) % 13 + 1
+def _ord2tzolkin(o):
+    return (o + 19) % 20 + 1, (o + 3) % 13 + 1
 
 
 class date:
@@ -175,10 +229,35 @@ class date:
         return cls(*longcount)
 
     @classmethod
-    def fromgregorian(cls, gregorian_date, correlation=None):
+    def fromgregorian(cls, *args, correlation=None):
         if correlation is None:
             correlation = cls.default_correlation
-        longcount = _date2longcount(gregorian_date, correlation)
+        len_args = len(args)
+        if len_args == 1:
+            if isinstance(args[0], tuple):
+                if len(args[0]) != 3:
+                    raise ValueError('tuple must consist of 3 elements')
+                year, month, day = args[0]
+                if year < 0:
+                    longcount = _bc2longcount(year, month, day, correlation)
+                else:
+                    gdate = datetime.date(year, month, day)
+                    longcount = _date2longcount(gdate, correlation)
+            elif isinstance(args[0], datetime.date):
+                longcount = _date2longcount(args[0], correlation)
+            else:
+                raise ValueError(
+                    "argument must be tuple or 'datetime.date' object"
+                )
+        elif len_args == 3:
+            year, month, day = args
+            if year < 0:
+                longcount = _bc2longcount(year, month, day, correlation)
+            else:
+                gdate = datetime.date(year, month, day)
+                longcount = _date2longcount(gdate, correlation)
+        else:
+            raise ValueError('argument # must be 1 or 3')
         return cls(*longcount, correlation=correlation)
 
     @classmethod
