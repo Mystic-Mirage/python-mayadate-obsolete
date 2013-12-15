@@ -1,4 +1,5 @@
 import datetime
+import struct
 
 
 CORRELATION_GMT = 584283
@@ -477,6 +478,9 @@ class date:
             return self._cmp(other) > 0
         return NotImplemented
 
+    def __hash__(self):
+        return hash(self._getstate())
+
     def __add__(self, other):
         if isinstance(other, delta):
             o = self.daynum + other.days
@@ -495,6 +499,17 @@ class date:
             daynum2 = other.daynum
             return delta(daynum1 - daynum2)
         return NotImplemented
+
+    def _getstate(self):
+        return struct.pack(
+            'BBBBBB',
+            self._piktun,
+            self._baktun,
+            self._katun,
+            self._tun,
+            self._winal,
+            self._kin
+        )
 
 
 delta = datetime.timedelta
