@@ -66,6 +66,7 @@ True
 TODO:
 -----
 * replace() method
+* BCE in togregorian() method
 * custom formatting support
 * pickle support
 * distutils support
