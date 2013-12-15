@@ -231,9 +231,8 @@ class date:
 
     @classmethod
     def fromgregorian(cls, *args, **kwargs):
-        if 'correlation' in kwargs:
-            correlation = kwargs['correlation']
-        else:
+        correlation = kwargs.get('correlation', None)
+        if correlation is None:
             correlation = cls.default_correlation
         len_args = len(args)
         if len_args == 1:
@@ -266,7 +265,7 @@ class date:
     @classmethod
     def today(cls, correlation=None):
         today = datetime.date.today()
-        return cls.fromgregorian(today, correlation)
+        return cls.fromgregorian(today, correlation=correlation)
 
     def __init__(self, *args, **kwargs):
         piktun, baktun, katun, tun, winal, kin = _longcount(*args)
@@ -277,10 +276,11 @@ class date:
         self._tun = tun
         self._winal = winal
         self._kin = kin
-        if 'correlation' in kwargs:
-            self.correlation = kwargs['correlation']
-        else:
+        correlation = kwargs.get('correlation', None)
+        if correlation is None:
             self.correlation = self.__class__.default_correlation
+        else:
+            self.correlation = correlation
 
     def __repr__(self):
         if self._piktun > 0:
