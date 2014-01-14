@@ -210,7 +210,7 @@ def _ord2tzolkin(o):
     return (o + 19) % 20 + 1, (o + 3) % 13 + 1
 
 
-class date:
+class date(object):
 
     __slots__ = (
         '_piktun',
@@ -267,9 +267,10 @@ class date:
         today = datetime.date.today()
         return cls.fromgregorian(today, correlation=correlation)
 
-    def __init__(self, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         piktun, baktun, katun, tun, winal, kin = _longcount(*args)
         _check_longcount_fields(piktun, baktun, katun, tun, winal, kin)
+        self = object.__new__(cls)
         self._piktun = piktun
         self._baktun = baktun
         self._katun = katun
@@ -281,6 +282,7 @@ class date:
             self.correlation = self.__class__.default_correlation
         else:
             self.correlation = correlation
+        return self
 
     def __repr__(self):
         if self._piktun > 0:
